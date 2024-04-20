@@ -1,0 +1,11 @@
+Pillow
+requests
+opencv-python
+IPython
+huggingface_hub
+openai
+anthropic
+moviepy
+numpy
+
+
