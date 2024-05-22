@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-if_ai_hfdownloadernode"
+description = "downloads repos from HF please read the readme since is a bit confusing to use sorry:)"
+version = "1.0.0"
+license = "LICENSE"
+dependencies = ["Pillow", "requests", "opencv-python", "IPython", "huggingface_hub", "groq", "openai", "anthropic", "moviepy", "numpy"]
+
+[project.urls]
+Repository = "https://github.com/if-ai/ComfyUI-IF_AI_tools"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = "impactframes"
+DisplayName = "ComfyUI-IF_AI_tools"
+Icon = "💥🎞️"
