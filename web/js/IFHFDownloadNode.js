@@ -1,34 +1,107 @@
 import { app } from "../../scripts/app.js";
 
+// Load CSS
+const link = document.createElement('link');
+link.rel = 'stylesheet';
+link.type = 'text/css';
+link.href = 'file=ComfyUI-IF_AI_HFDownloaderNode/IFHFDownload.css';
+document.head.appendChild(link);
+
 app.registerExtension({
     name: "IFHFDownload",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        if (nodeType === "IF_HFDownload") {
-            nodeData.widgets.download.onClick = async (node) => {
-                const mode = node.data.mode;
-                const repoId = node.data.repo_id;
-                const filePath = node.data.file_path;
-                const folderPath = node.data.folder_path;
-                const excludeFiles = node.data.exclude_files;
+        if (nodeType.comfyClass === "IF_HFDownload") {
+            const onNodeCreated = nodeType.prototype.onNodeCreated;
+            nodeType.prototype.onNodeCreated = function() {
+                onNodeCreated?.apply(this, arguments);
                 
-                node.setLoading(true);  // Set the node to loading state
-                
+                this.element.classList.add('IF-HFDownload-node');
+
+                // Add download button
+                this.addWidget("button", "Download", "download", () => {
+                    this.downloadFiles();
+                });
+
+                // Add progress bar
+                this.addWidget("progressbar", "Progress", "progress", 0, 1);
+                this.progressBarWidget = this.widgets[this.widgets.length - 1];
+                this.progressBarWidget.classList?.add("IF-progress-bar");
+
+                // Add titles to each input
+                this.inputs.forEach(input => {
+                    const widget = this.widgets.find(w => w.name === input.name);
+                    if (widget) {
+                        const title = document.createElement("div");
+                        title.className = "IF-input-title";
+                        title.textContent = this.getInputTitle(input.name);
+                        widget.element.parentNode.insertBefore(title, widget.element);
+                    }
+                });
+            };
+
+            nodeType.prototype.getInputTitle = function(inputName) {
+                const titles = {
+                    repo_id: "Repository ID",
+                    file_paths: "File Paths",
+                    folder_path: "Download Folder",
+                    exclude_files: "Exclude Files",
+                    hf_token: "HF Token",
+                    mode: "Download Mode"
+                };
+                return titles[inputName] || inputName;
+            };
+
+            nodeType.prototype.downloadFiles = async function() {
+                const data = {
+                    mode: this.widgets.find(w => w.name === "mode").value,
+                    repo_id: this.widgets.find(w => w.name === "repo_id").value,
+                    file_paths: this.widgets.find(w => w.name === "file_paths").value,
+                    folder_path: this.widgets.find(w => w.name === "folder_path").value,
+                    exclude_files: this.widgets.find(w => w.name === "exclude_files").value,
+                    hf_token: this.widgets.find(w => w.name === "hf_token").value,
+                };
+
                 try {
-                    const res = await app.apiClient.post("/custom_node/hf_download", {
-                        mode,
-                        repo_id: repoId,
-                        file_path: filePath,
-                        folder_path: folderPath,
-                        exclude_files: excludeFiles
+                    const response = await fetch("/custom_node/hf_download", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(data)
                     });
-                    
-                    node.data.output = res.data;
-                    node.onExecuted?.();
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    this.output = result.result;
+                    app.ui.dialog.show(`Download Complete: ${this.output}`);
                 } catch (error) {
-                    console.error("Error downloading from HuggingFace:", error);
+                    console.error("Download failed:", error);
+                    app.ui.dialog.show("Download failed. Check console for details.");
                 }
-                
-                node.setLoading(false);  // Set the node back to normal state
+            };
+
+            // Handle progress updates
+            nodeType.prototype.onExecuted = function(message) {
+                if (message.progress !== undefined) {
+                    this.progressBarWidget.value = message.progress.value;
+                    this.progressBarWidget.max = message.progress.max;
+                    if (message.progress.text) {
+                        this.progressBarWidget.innerText = message.progress.text;
+                    }
+                    this.setDirtyCanvas(true, false);
+                }
+            };
+
+            // Update widget values when node is loaded
+            const onConfigure = nodeType.prototype.onConfigure;
+            nodeType.prototype.onConfigure = function(info) {
+                onConfigure?.apply(this, arguments);
+                for (const w of this.widgets) {
+                    if (w.type !== "button" && info[w.name] !== undefined) {
+                        w.value = info[w.name];
+                    }
+                }
             };
         }
     }
