@@ -7,7 +7,7 @@ HuggingFAce hub from the reqs
 1. Get the repo ID from Hugging face
 2. select individual or whole repo on the switch
 3. copy the name of the individual file
-4. create a folde4r wheere you want to download the files or repo
+4. create a folder where you want to download the files or repo
 5. download everything
 6. might need to add a HF Token
 7. 🚨Do not save or share your workflows with the TOKENS weritten
