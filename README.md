@@ -1,16 +1,46 @@
 # ComfyUI-IF_AI_HFDownloaderNode
-Download HF repos from comfy 
-Possible faster download install this extra package from HF
-activate your comfyui environment and  
-'pip install huggingface_hub[hf_transfer]'
-and export your variable
-nano ~/.bashrc
-export HF_HUB_ENABLE_HF_TRANSFER=1
-windows press win+r type systempropertiesadvanced
-![SystemPropertiesAdvanced_LBxcaibjOE](https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode/assets/21185218/d6177287-3cb7-42bf-b216-14acb91fb3e1)
-neme your new system variable 'HF_HUB_ENABLE_HF_TRANSFER'
-variable value '1'
-![SystemPropertiesAdvanced_S1aWUb9EwP](https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode/assets/21185218/129ba069-928e-40f5-b44f-80f5579fb6da)
+
+Download HF repos from comfy.
+
+## Faster Download
+
+To enable faster downloads, install the extra package from Hugging Face.
+
+1. Activate your ComfyUI environment and install the package:
+
+    ```bash
+    pip install huggingface_hub[hf_transfer]
+    ```
+
+2. Export the environment variable:
+
+    ```bash
+    nano ~/.bashrc
+    ```
+
+    Add the following line:
+
+    ```bash
+    export HF_HUB_ENABLE_HF_TRANSFER=1
+    ```
+
+    Save and close the file, then reload your bash configuration:
+
+    ```bash
+    source ~/.bashrc
+    ```
+
+3. For Windows:
+
+    - Press `Win + R` and type `systempropertiesadvanced`.
+    - Click on the "Environment Variables" button.
+
+    ![SystemPropertiesAdvanced_LBxcaibjOE](https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode/assets/21185218/d6177287-3cb7-42bf-b216-14acb91fb3e1)
+
+    - Create a new system variable with the name `HF_HUB_ENABLE_HF_TRANSFER` and the value `1`.
+
+    ![SystemPropertiesAdvanced_S1aWUb9EwP](https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode/assets/21185218/129ba069-928e-40f5-b44f-80f5579fb6da)
+
 
 
 
