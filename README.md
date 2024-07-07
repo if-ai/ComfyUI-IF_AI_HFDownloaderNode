@@ -1,5 +1,18 @@
 # ComfyUI-IF_AI_HFDownloaderNode
-Talking avatars Heads for the IF_AI tools integrates dreamtalk in ComfyUI
+Download HF repos from comfy 
+Possible faster download install this extra package from HF
+activate your comfyui environment and  
+'pip install huggingface_hub[hf_transfer]'
+and export your variable
+nano ~/.bashrc
+export HF_HUB_ENABLE_HF_TRANSFER=1
+windows press win+r type systempropertiesadvanced
+![SystemPropertiesAdvanced_LBxcaibjOE](https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode/assets/21185218/d6177287-3cb7-42bf-b216-14acb91fb3e1)
+neme your new system variable 'HF_HUB_ENABLE_HF_TRANSFER'
+variable value '1'
+![SystemPropertiesAdvanced_S1aWUb9EwP](https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode/assets/21185218/129ba069-928e-40f5-b44f-80f5579fb6da)
+
+
 
 ## Prerequisites
 HuggingFAce hub from the reqs
