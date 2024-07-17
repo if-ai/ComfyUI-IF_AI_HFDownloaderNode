@@ -1,0 +1,139 @@
+{
+  "last_node_id": 4,
+  "last_link_id": 2,
+  "nodes": [
+    {
+      "id": 2,
+      "type": "IF_DisplayText",
+      "pos": [
+        1405,
+        479
+      ],
+      "size": [
+        443.5418698345452,
+        82.07173509794768
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 2,
+          "widget": {
+            "name": "text"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "IF_DisplayText"
+      },
+      "widgets_values": [
+        "",
+        "Downloaded files: vae/diffusion_pytorch_model.bin, model_index.json from Kwai-Kolors/Kolors to /mnt/i/ComfyUI/models/IF_AI/rename_me"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "IF_HFDownloadNode",
+      "pos": [
+        994,
+        480
+      ],
+      "size": {
+        "0": 400,
+        "1": 246
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            2
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "IF_HFDownloadNode"
+      },
+      "widgets_values": [
+        "Kwai-Kolors/Kolors",
+        "comma-separated list of files or leave empty for all",
+        "/path/to/download/folder",
+        "comma-separated list to exclude",
+        "your Hugging Face token",
+        true,
+        true
+      ]
+    },
+    {
+      "id": 3,
+      "type": "Note",
+      "pos": [
+        1404,
+        603
+      ],
+      "size": [
+        437.74186983454547,
+        323.3917485256818
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "title": "ABOUT",
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "1-.Take a repo ID from HF it can be a HF Space too. example \"Kwai-Kolors/Kolors\"\n\n2-. On the bottom you can select individual Mode here you can select a single or coma separate names from a repo \"vae/diffusion_pytorch_model.bin,model_index.json\" will download the vae model inside the vae folder and the model_index.json at the root of kolors  \n\n3-. You can specify a path or use the default directory at the root of comfy ComfyUI/models/IF_AI with the same name as the repo you are downloading\n\n4-. Exclude the files when on whole repo or space mode works the same as number 2 but exclude the files instead\n\n5-. HuggingFace token you need to either write an access token here form the settings on your HF profile or create an environment variable for your user named HF_TOKEN, optionally\nCreate a .env file in the root directory of the node with HF_TOKEN=your_token_here \n\n6-. You can specify a folder to download\n\n7-. Mode individual or download the full repo/space\n\n"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    }
+  ],
+  "links": [
+    [
+      2,
+      4,
+      0,
+      2,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.9090909090909097,
+      "offset": [
+        -705.36855440486,
+        -284.13842973906117
+      ]
+    },
+    "info": {
+      "name": "HF_downloader_wf",
+      "author": "",
+      "description": "",
+      "version": "1",
+      "created": "2024-07-17T08:09:43.033Z",
+      "modified": "2024-07-17T09:12:04.083Z",
+      "software": "ComfyUI"
+    }
+  },
+  "version": 0.4
+}
