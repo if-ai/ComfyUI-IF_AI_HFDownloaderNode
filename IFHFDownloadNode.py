@@ -1,10 +1,12 @@
 import os
 import math
+import re
 from huggingface_hub import hf_hub_download, snapshot_download, HfApi
 from server import PromptServer
 from aiohttp import web
 import asyncio
 from tqdm import tqdm
+from dotenv import load_dotenv
 
 class CustomProgress(tqdm):
     def __init__(self, *args, **kwargs):
@@ -37,6 +39,9 @@ class CustomProgress(tqdm):
 class IFHFDownload:
     def __init__(self):
         self.output = None
+        self.comfy_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.download_dir = os.path.join(self.comfy_dir, "models", "IF_AI")
+        load_dotenv(os.path.join(self.comfy_dir, '.env'))
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -46,7 +51,8 @@ class IFHFDownload:
                 "file_paths": ("STRING", {"multiline": True, "default": "comma-separated list of files or leave empty for all"}),
                 "folder_path": ("STRING", {"multiline": False, "default": "/path/to/download/folder"}),
                 "exclude_files": ("STRING", {"multiline": True, "default": "comma-separated list to exclude"}),
-                "hf_token": ("STRING", {"multiline": False, "default": "your Hugging Face token"}),
+                "hf_token": ("STRING", {"multiline": False, "default": "your Hugging Face token or leave empty to use environment variable"}),
+                "use_default_dir": ("BOOLEAN", {"default": False, "label": "Use Default Download Directory"}),
             },
             "optional": {
                 "mode": ("BOOLEAN", {"default": False, "label_on": "All Repo/Space", "label_off": "Individual Files"}),
@@ -57,29 +63,57 @@ class IFHFDownload:
     FUNCTION = "download_hf"
     CATEGORY = "ImpactFrames💥🎞️"
 
-    def download_hf(self, mode, repo_id, file_paths, folder_path, exclude_files, hf_token):
+    def get_hf_token(self, provided_token):
+        if provided_token and provided_token != "your Hugging Face token or leave empty to use environment variable":
+            return provided_token
+        
+        env_token = os.getenv("HF_TOKEN")
+        if env_token:
+            return env_token
+        
+        raise ValueError("HF_TOKEN not found. Please set it in your .env file, as an environment variable, or provide it in the node input.")
+
+    def get_safe_folder_name(self, repo_id):
+        # Extract the last part of the repo_id
+        folder_name = repo_id.split('/')[-1]
+        # Replace any characters that might be problematic for file systems
+        safe_name = re.sub(r'[^\w\-_\. ]', '_', folder_name)
+        return safe_name
+
+    def download_hf(self, mode, repo_id, file_paths, folder_path, exclude_files, hf_token, use_default_dir):
+        try:
+            hf_token = self.get_hf_token(hf_token)
+        except ValueError as e:
+            self.output = str(e)
+            return (self.output,)
+
         exclude_list = [f.strip() for f in exclude_files.split(",") if f.strip()]
-        rename_me_folder = os.path.join(folder_path, "rename_me")
-        os.makedirs(rename_me_folder, exist_ok=True)
+        
+        if use_default_dir:
+            download_folder = self.download_dir
+        elif folder_path and folder_path != "/path/to/download/folder" and os.path.isdir(folder_path):
+            download_folder = folder_path
+        else:
+            raise ValueError("Please specify a valid folder path or check 'Use Default Download Directory'")
+        
+        repo_folder_name = self.get_safe_folder_name(repo_id)
+        repo_download_folder = os.path.join(download_folder, repo_folder_name)
+        os.makedirs(repo_download_folder, exist_ok=True)
 
         if '/' in repo_id:
-            # This could be a space or a regular repo
             parts = repo_id.split('/')
             if len(parts) > 2:
-                # This is likely a space path
                 space_id = '/'.join(parts[:2])
                 subpath = '/'.join(parts[2:])
-                self.download_from_space(space_id, subpath, file_paths, rename_me_folder, exclude_list, hf_token, mode)
+                self.download_from_space(space_id, subpath, file_paths, repo_download_folder, exclude_list, hf_token, mode)
             else:
-                # This is a regular repo
-                self.download_repo_or_files(repo_id, file_paths, rename_me_folder, exclude_list, hf_token, mode)
+                self.download_repo_or_files(repo_id, file_paths, repo_download_folder, exclude_list, hf_token, mode)
         else:
-            # This is a regular repo
-            self.download_repo_or_files(repo_id, file_paths, rename_me_folder, exclude_list, hf_token, mode)
+            self.download_repo_or_files(repo_id, file_paths, repo_download_folder, exclude_list, hf_token, mode)
 
         return (self.output,)
 
-    def download_from_space(self, space_id, subpath, file_paths, rename_me_folder, exclude_list, hf_token, download_all):
+    def download_from_space(self, space_id, subpath, file_paths, repo_download_folder, exclude_list, hf_token, download_all):
         api = HfApi(token=hf_token)
 
         if download_all:
@@ -96,38 +130,38 @@ class IFHFDownload:
                             repo_id=space_id,
                             filename=file,
                             repo_type="space",
-                            local_dir=rename_me_folder,
+                            local_dir=repo_download_folder,
                             token=hf_token
                         )
                         pbar.update(1)
                     except Exception as e:
                         print(f"Error downloading {file}: {str(e)}")
 
-        self.output = f"Downloaded files from Space: {space_id}/{subpath} to {rename_me_folder}"
+        self.output = f"Downloaded files from Space: {space_id}/{subpath} to {repo_download_folder}"
 
-    def download_repo_or_files(self, repo_id, file_paths, rename_me_folder, exclude_list, hf_token, download_all):
+    def download_repo_or_files(self, repo_id, file_paths, repo_download_folder, exclude_list, hf_token, download_all):
         if download_all:
-            self.download_repo_sync(repo_id, rename_me_folder, exclude_list, hf_token)
+            self.download_repo_sync(repo_id, repo_download_folder, exclude_list, hf_token)
         else:
-            self.download_files_sync(repo_id, file_paths, rename_me_folder, hf_token)
+            self.download_files_sync(repo_id, file_paths, repo_download_folder, hf_token)
 
-    def download_repo_sync(self, repo_id, rename_me_folder, exclude_list, hf_token):
+    def download_repo_sync(self, repo_id, repo_download_folder, exclude_list, hf_token):
         snapshot_download(
             repo_id=repo_id,
-            local_dir=rename_me_folder,
+            local_dir=repo_download_folder,
             token=hf_token,
             max_workers=1,
             tqdm_class=CustomProgress
         )
         
-        for root, dirs, files in os.walk(rename_me_folder):
+        for root, dirs, files in os.walk(repo_download_folder):
             for file in files:
-                file_path = os.path.relpath(os.path.join(root, file), rename_me_folder)
+                file_path = os.path.relpath(os.path.join(root, file), repo_download_folder)
                 if file_path in exclude_list:
                     os.remove(os.path.join(root, file))
-        self.output = f"Downloaded repo: {repo_id} to {rename_me_folder}"
+        self.output = f"Downloaded repo: {repo_id} to {repo_download_folder}"
 
-    def download_files_sync(self, repo_id, file_paths, rename_me_folder, hf_token):
+    def download_files_sync(self, repo_id, file_paths, repo_download_folder, hf_token):
         downloaded_files = []
         file_paths_list = [f.strip() for f in file_paths.split(",") if f.strip()]
         total_files = len(file_paths_list)
@@ -138,7 +172,7 @@ class IFHFDownload:
                     hf_hub_download(
                         repo_id=repo_id,
                         filename=file_path,
-                        local_dir=rename_me_folder,
+                        local_dir=repo_download_folder,
                         token=hf_token
                     )
                     downloaded_files.append(file_path)
@@ -146,7 +180,7 @@ class IFHFDownload:
                 except Exception as e:
                     print(f"Error downloading {file_path}: {str(e)}")
         
-        self.output = f"Downloaded files: {', '.join(downloaded_files)} from {repo_id} to {rename_me_folder}"
+        self.output = f"Downloaded files: {', '.join(downloaded_files)} from {repo_id} to {repo_download_folder}"
 
 NODE_CLASS_MAPPINGS = {"IF_HFDownload": IFHFDownload}
 NODE_DISPLAY_NAME_MAPPINGS = {"IF_HFDownload": "Hugging Face Download🤗"}
