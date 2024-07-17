@@ -1,15 +1,20 @@
 # ComfyUI-IF_AI_HFDownloaderNode
 
 Download HF repos from comfy.
+![HFDownloader](https://github.com/user-attachments/assets/10232d11-24f6-4787-a434-4e428942bb76)
 
-## Faster Download
+## Installation
 
-To enable faster downloads, install the extra package from Hugging Face.
+- You can clone this repo to your comfy custom nodes folder.
 
+    ```bash
+    git clone https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode.git
+    ```
+    
 1. Activate your ComfyUI environment and install the package:
 
     ```bash
-    pip install huggingface_hub[hf_transfer]
+    pip install requiremnts.txt
     ```
 
 2. Export the environment variable:
@@ -21,7 +26,7 @@ To enable faster downloads, install the extra package from Hugging Face.
     Add the following line:
 
     ```bash
-    export HF_HUB_ENABLE_HF_TRANSFER=1
+    export HF_TOKEN=Your_Access_Token_from_your_HF_account
     ```
 
     Save and close the file, then reload your bash configuration:
@@ -34,31 +39,42 @@ To enable faster downloads, install the extra package from Hugging Face.
 
     - Press `Win + R` and type `systempropertiesadvanced`.
     - Click on the "Environment Variables" button.
+![explorer_1PjxFBzcXz](https://github.com/user-attachments/assets/d631a16c-2b72-4fc7-9f33-89ea4263d428)
 
-    ![SystemPropertiesAdvanced_LBxcaibjOE](https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode/assets/21185218/d6177287-3cb7-42bf-b216-14acb91fb3e1)
+   
+![SystemPropertiesAdvanced_tj1x4S8xwX](https://github.com/user-attachments/assets/479ea5d9-8716-4110-93bb-c9866d56649b)
 
-    - Create a new system variable with the name `HF_HUB_ENABLE_HF_TRANSFER` and the value `1`.
+    - Create a new system variable with the name `HF_TOKEN` and the value `Your_Access_Token_from_your_HF_account`.
+![NVIDIA_Share_qehsri6Raq](https://github.com/user-attachments/assets/08616a97-cf13-4a3c-89c9-91e2b8629c3a)
 
-    ![SystemPropertiesAdvanced_S1aWUb9EwP](https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode/assets/21185218/129ba069-928e-40f5-b44f-80f5579fb6da)
-
+    
 
 
 
 ## Prerequisites
 HuggingFAce hub from the reqs
 
-1. Get the repo ID from Hugging face
-2. select individual or whole repo on the switch
-3. copy the name of the individual file
-4. create a folder where you want to download the files or repo
-5. download everything
-6. might need to add a HF Token
-7. 🚨Do not save or share your workflows with the TOKENS weritten
+1-.Take a repo ID from HF it can be a HF Space too. example "Kwai-Kolors/Kolors"
+
+2-. On the bottom you can select individual Mode here you can select a single or coma separate names from a repo "vae/diffusion_pytorch_model.bin,model_index.json" will download the vae model inside the vae folder and the model_index.json at the root of kolors  
+
+3-. You can specify a path or use the default directory at the root of comfy ComfyUI/models/IF_AI with the same name as the repo you are downloading
+
+4-. Exclude the files when on whole repo or space mode works the same as number 2 but exclude the files instead
+
+5-. HuggingFace token you need to either write an access token here form the settings on your HF profile or create an environment variable for your user named HF_TOKEN, optionally
+Create a .env file in the root directory of the node with HF_TOKEN=your_token_here 
+
+6-. You can specify a folder to download
+
+7-. Mode individual or download the full repo/space
+
+🚨Do not save or share your workflows with the TOKENS weritten
    in fact do not share WF using this Node⚠️
-8.Once downloaded you can drag the files out to the correct location 
+
 
 ## Tutorial 
-[Video Title](https://youtu.be/0KWy3xiPado)
+[VIDEO USING THE NODE](https://youtu.be/0KWy3xiPado)
 
 
 ## Related Tools
