@@ -14,7 +14,7 @@ Download HF repos from comfy.
 1. Activate your ComfyUI environment and install the package:
 
     ```bash
-    pip install requiremnts.txt
+    pip install requirements.txt
     ```
 
 2. Export the environment variable:
