@@ -1,6 +1,6 @@
 huggingface_hub
 python-dotenv
-tqdm
+tqm
 aiohttp
 
 

@@ -1,3 +1,15 @@
+# IFHFDownloadNode.py
+"""
+Hugging Face Download Node
+
+Copyright 2023 impactframes
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""
 import os
 import math
 import re
@@ -40,7 +52,7 @@ class IFHFDownload:
     def __init__(self):
         self.output = None
         self.comfy_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.download_dir = os.path.join(self.comfy_dir, "models", "IF_AI")
+        self.download_dir = os.path.join(self.comfy_dir, "models")
         load_dotenv(os.path.join(self.comfy_dir, '.env'))
 
     @classmethod
@@ -50,12 +62,12 @@ class IFHFDownload:
                 "repo_id": ("STRING", {"multiline": False}),
                 "file_paths": ("STRING", {"multiline": True, "default": "comma-separated list of files or leave empty for all"}),
                 "folder_path": ("STRING", {"multiline": False, "default": "/path/to/download/folder"}),
+                "comfy_paths": (["none", "LLM", "checkpoints", "clip", "clip_vision", "controlnet", "diffusers", "embeddings", "loras", "upscale_models", "vae"], {"default": "none"}),
                 "exclude_files": ("STRING", {"multiline": True, "default": "comma-separated list to exclude"}),
-                "hf_token": ("STRING", {"multiline": False, "default": "your Hugging Face token or leave empty to use environment variable"}),
-                "use_default_dir": ("BOOLEAN", {"default": False, "label": "Use Default Download Directory"}),
             },
             "optional": {
                 "mode": ("BOOLEAN", {"default": False, "label_on": "All Repo/Space", "label_off": "Individual Files"}),
+                "provided_token": ("STRING", {"forceInput": True}),
             },
         }
 
@@ -63,15 +75,13 @@ class IFHFDownload:
     FUNCTION = "download_hf"
     CATEGORY = "ImpactFrames💥🎞️"
 
-    def get_hf_token(self, provided_token):
-        if provided_token and provided_token != "your Hugging Face token or leave empty to use environment variable":
+    def get_hf_token(self, provided_token = None):
+        if provided_token is not None and provided_token != "":
             return provided_token
-        
-        env_token = os.getenv("HF_TOKEN")
-        if env_token:
-            return env_token
-        
-        raise ValueError("HF_TOKEN not found. Please set it in your .env file, as an environment variable, or provide it in the node input.")
+        elif os.getenv("HF_TOKEN") or os.getenv("HF_API_KEY") or os.getenv("HUGGINGFACE_API_KEY"):
+            return os.getenv("HF_TOKEN") or os.getenv("HF_API_KEY") or os.getenv("HUGGINGFACE_API_KEY")
+        else:
+            raise ValueError("HF_TOKEN not found. Please set it in your .env file, as an environment variable, or provide it in the node input.")
 
     def get_safe_folder_name(self, repo_id):
         # Extract the last part of the repo_id
@@ -79,23 +89,26 @@ class IFHFDownload:
         # Replace any characters that might be problematic for file systems
         safe_name = re.sub(r'[^\w\-_\. ]', '_', folder_name)
         return safe_name
-
-    def download_hf(self, mode, repo_id, file_paths, folder_path, exclude_files, hf_token, use_default_dir):
+    
+    def download_hf(self, mode, repo_id, file_paths, comfy_paths, folder_path, exclude_files, provided_token = None):
         try:
-            hf_token = self.get_hf_token(hf_token)
+            hf_token = self.get_hf_token(provided_token)
         except ValueError as e:
             self.output = str(e)
             return (self.output,)
 
         exclude_list = [f.strip() for f in exclude_files.split(",") if f.strip()]
         
-        if use_default_dir:
-            download_folder = self.download_dir
-        elif folder_path and folder_path != "/path/to/download/folder" and os.path.isdir(folder_path):
-            download_folder = folder_path
-        else:
-            raise ValueError("Please specify a valid folder path or check 'Use Default Download Directory'")
         
+        if folder_path and folder_path != "/path/to/download/folder" and os.path.isdir(folder_path):
+            download_folder = folder_path
+        elif comfy_paths != "none":
+            download_folder = os.path.join(self.download_dir, comfy_paths)
+        else:
+            download_folder = os.path.join(self.download_dir, "IF_AI")
+            print(f"Download folder: {download_folder}")
+            
+            
         repo_folder_name = self.get_safe_folder_name(repo_id)
         repo_download_folder = os.path.join(download_folder, repo_folder_name)
         os.makedirs(repo_download_folder, exist_ok=True)
@@ -114,6 +127,7 @@ class IFHFDownload:
         return (self.output,)
 
     def download_from_space(self, space_id, subpath, file_paths, repo_download_folder, exclude_list, hf_token, download_all):
+        
         api = HfApi(token=hf_token)
 
         if download_all:
