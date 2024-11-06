@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-if_ai_hfdownloadernode"
-description = "downloads repos from HF please read the readme since is a bit confusing to use sorry:)"
-version = "1.0.0"
+description = "Downloads repos/spaces and individual files from HuggingFace"
+version = "1.0.1"
 license = "LICENSE"
 dependencies = ["huggingface_hub"]
 
