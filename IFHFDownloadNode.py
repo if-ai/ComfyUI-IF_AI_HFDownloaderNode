@@ -62,7 +62,7 @@ class IFHFDownload:
                 "repo_id": ("STRING", {"multiline": False}),
                 "file_paths": ("STRING", {"multiline": True, "default": "comma-separated list of files or leave empty for all"}),
                 "folder_path": ("STRING", {"multiline": False, "default": "/path/to/download/folder"}),
-                "comfy_paths": (["none", "LLM", "checkpoints", "clip", "clip_vision", "controlnet", "diffusers", "embeddings", "loras", "upscale_models", "vae"], {"default": "none"}),
+                "comfy_paths": (["none", "animatediff_models", "animatediff_motion_lora", "animatediff_video_formats", "blip", "checkpoints", "clip", "clip_vision", "CogVideo", "configs", "controlnet", "diffusers", "diffusion_models", "embeddings", "gligen", "hypernetworks", "insightface", "Joy_caption", "layerstyle", "liveportrait", "LLM", "loras", "photomaker", "style_models", "unet", "upscale_models", "vae", "vae_approx", "xlabs"], {"default": "none"}),
                 "exclude_files": ("STRING", {"multiline": True, "default": "comma-separated list to exclude"}),
             },
             "optional": {

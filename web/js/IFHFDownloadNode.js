@@ -1,10 +1,10 @@
-import { app } from "../../scripts/app.js";
+const { app } = window.comfyAPI.app;
 
 // Load CSS
 const link = document.createElement('link');
 link.rel = 'stylesheet';
 link.type = 'text/css';
-link.href = 'file=ComfyUI-IF_AI_HFDownloaderNode/IFHFDownload.css';
+link.href = 'file=ComfyUI-IF_AI_HFDownloaderNode/web/js/IFHFDownload.css';
 document.head.appendChild(link);
 
 app.registerExtension({
