@@ -1,15 +1,4 @@
 # IFHFDownloadNode.py
-"""
-Hugging Face Download Node
-
-Copyright 2023 impactframes
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-"""
 import os
 import math
 import re
@@ -17,26 +6,24 @@ from huggingface_hub import hf_hub_download, snapshot_download, HfApi
 from server import PromptServer
 from aiohttp import web
 import asyncio
-from tqdm import tqdm
+from comfy.utils import ProgressBar
 from dotenv import load_dotenv
+from tqdm import tqdm
 
-class CustomProgress(tqdm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.last_update = 0
-        self.total_size = kwargs.get('total', 0)
-
+class ComfyProgress:
+    def __init__(self, total):
+        self.progress = ProgressBar(total)
+        self.total_size = total
+        
     def update(self, n=1):
-        super().update(n)
-        current_progress = self.n / self.total if self.total else 0
-        if current_progress - self.last_update > 0.01 or self.n == self.total:
-            size_info = f"{self.format_bytes(self.n)}/{self.format_bytes(self.total_size)}"
-            PromptServer.instance.send_sync("progress", {
-                "value": current_progress,
-                "max": 1,
-                "text": f"Downloading: {size_info}"
-            })
-            self.last_update = current_progress
+        self.progress.update(n)
+        current = self.progress.current
+        size_info = f"{self.format_bytes(current)}/{self.format_bytes(self.total_size)}"
+        PromptServer.instance.send_sync("progress", {
+            "value": current,
+            "max": self.total_size,
+            "text": f"Downloading: {size_info}"
+        })
 
     @staticmethod
     def format_bytes(size):
@@ -47,6 +34,54 @@ class CustomProgress(tqdm):
         p = math.pow(1024, i)
         s = round(size / p, 2)
         return f"{s} {size_name[i]}"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+class SnapshotProgress(tqdm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.last_update = 0
+        self.current_file = ""
+        self.downloaded_size = 0
+        self.total_size = 0
+
+    def update(self, n=1):
+        super().update(n)
+        current_progress = self.n / self.total if self.total else 0
+        
+        # Only update UI when progress changes significantly or completes
+        if current_progress - self.last_update > 0.01 or current_progress >= 1:
+            self.last_update = current_progress
+            
+            # Format the progress message
+            if hasattr(self, 'desc') and self.desc:
+                status = f"{self.desc}: "
+            else:
+                status = ""
+                
+            status += f"File {self.n}/{self.total}"
+            
+            if hasattr(self, 'current_file') and self.current_file:
+                status += f" ({self.current_file})"
+                
+            PromptServer.instance.send_sync("progress", {
+                "value": current_progress,
+                "max": 1,
+                "text": status
+            })
+
+    def set_current_file(self, filename):
+        self.current_file = filename
+        self.refresh()
+
+    def set_file_progress(self, downloaded, total):
+        self.downloaded_size = downloaded
+        self.total_size = total
+        self.refresh()
 
 class IFHFDownload:
     def __init__(self):
@@ -127,7 +162,6 @@ class IFHFDownload:
         return (self.output,)
 
     def download_from_space(self, space_id, subpath, file_paths, repo_download_folder, exclude_list, hf_token, download_all):
-        
         api = HfApi(token=hf_token)
 
         if download_all:
@@ -136,7 +170,7 @@ class IFHFDownload:
         else:
             files = [os.path.join(subpath, file.strip()) for file in file_paths.split(',') if file.strip()]
 
-        with CustomProgress(total=len(files), desc="Downloading files from space") as pbar:
+        with ComfyProgress(len(files)) as pbar:
             for file in files:
                 if file not in exclude_list:
                     try:
@@ -160,27 +194,33 @@ class IFHFDownload:
             self.download_files_sync(repo_id, file_paths, repo_download_folder, hf_token)
 
     def download_repo_sync(self, repo_id, repo_download_folder, exclude_list, hf_token):
-        snapshot_download(
-            repo_id=repo_id,
-            local_dir=repo_download_folder,
-            token=hf_token,
-            max_workers=1,
-            tqdm_class=CustomProgress
-        )
-        
-        for root, dirs, files in os.walk(repo_download_folder):
-            for file in files:
-                file_path = os.path.relpath(os.path.join(root, file), repo_download_folder)
-                if file_path in exclude_list:
-                    os.remove(os.path.join(root, file))
-        self.output = f"Downloaded repo: {repo_id} to {repo_download_folder}"
+        try:
+            snapshot_download(
+                repo_id=repo_id,
+                local_dir=repo_download_folder,
+                token=hf_token,
+                max_workers=1,
+                tqdm_class=SnapshotProgress
+            )
+            
+            # Clean up excluded files after download
+            for root, dirs, files in os.walk(repo_download_folder):
+                for file in files:
+                    file_path = os.path.relpath(os.path.join(root, file), repo_download_folder)
+                    if file_path in exclude_list:
+                        os.remove(os.path.join(root, file))
+                        
+            self.output = f"Downloaded repo: {repo_id} to {repo_download_folder}"
+        except Exception as e:
+            self.output = f"Error downloading repo: {str(e)}"
+            print(f"Download error: {str(e)}")
 
     def download_files_sync(self, repo_id, file_paths, repo_download_folder, hf_token):
         downloaded_files = []
         file_paths_list = [f.strip() for f in file_paths.split(",") if f.strip()]
         total_files = len(file_paths_list)
         
-        with CustomProgress(total=total_files, desc="Downloading files") as pbar:
+        with ComfyProgress(total_files) as pbar:
             for file_path in file_paths_list:
                 try:
                     hf_hub_download(
