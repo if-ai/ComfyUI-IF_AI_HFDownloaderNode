@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-if_ai_hfdownloadernode"
 description = "Downloads repos/spaces and individual files from HuggingFace"
-version = "1.0.1"
+version = "1.0.2"
 license = { file = "LICENSE.txt" } 
 dependencies = ["huggingface_hub", "python-dotenv", "aiohttp", "tqm"]
 
