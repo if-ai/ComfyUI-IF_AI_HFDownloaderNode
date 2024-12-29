@@ -97,7 +97,12 @@ class IFHFDownload:
                 "repo_id": ("STRING", {"multiline": False}),
                 "file_paths": ("STRING", {"multiline": True, "default": "comma-separated list of files or leave empty for all"}),
                 "folder_path": ("STRING", {"multiline": False, "default": "/path/to/download/folder"}),
-                "comfy_paths": (["none", "animatediff_models", "animatediff_motion_lora", "animatediff_video_formats", "blip", "checkpoints", "clip", "clip_vision", "CogVideo", "configs", "controlnet", "diffusers", "diffusion_models", "embeddings", "gligen", "hypernetworks", "insightface", "Joy_caption", "layerstyle", "liveportrait", "LLM", "loras", "photomaker", "style_models", "unet", "upscale_models", "vae", "vae_approx", "xlabs"], {"default": "none"}),
+                "comfy_paths": (["none", "animatediff_models", "animatediff_motion_lora", "animatediff_video_formats", 
+                                 "blip", "checkpoints", "classifiers", "clip", "clip_vision", "CogVideo", "configs", "controlnet", "control-lora",
+                                 "deforum", "diffusers", "diffusion_models", "embeddings", "emotion2vec", "facedetection", 
+                                 "FILM", "gligen", "hypernetworks", "insightface", 
+                                 "Joy_caption", "layerstyle", "liveportrait",  "LLM", "loras", "onnx", "photomaker", "style_models",
+                                 "unet", "upscale_models", "vae", "vae_approx", "wav2vec", "xlabs"], {"default": "none"}),
                 "exclude_files": ("STRING", {"multiline": True, "default": "comma-separated list to exclude"}),
             },
             "optional": {
@@ -108,7 +113,7 @@ class IFHFDownload:
 
     RETURN_TYPES = ("STRING",)
     FUNCTION = "download_hf"
-    CATEGORY = "ImpactFrames💥🎞️"
+    CATEGORY = "ImpactFrames💥🎞️/utils"
 
     def get_hf_token(self, provided_token = None):
         if provided_token is not None and provided_token != "":
