@@ -6,7 +6,7 @@ license = { file = "MIT License" }
 dependencies = ["huggingface_hub", "python-dotenv", "aiohttp", "tqm"]
 
 [project.urls]
-Repository = "https://github.com/if-ai/ComfyUI-IF_AI_tools"
+Repository = "https://github.com/if-ai/ComfyUI-IF_AI_HFDownloaderNode"
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
