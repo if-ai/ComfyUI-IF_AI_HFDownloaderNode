@@ -12,4 +12,4 @@ Repository = "https://github.com/if-ai/ComfyUI-IF_AI_tools"
 [tool.comfy]
 PublisherId = "impactframes"
 DisplayName = "IF_HuggingFace_downloader"
-Icon = ""
+Icon = "https://impactframes.ai/System/Icons/48x48/if.png"
