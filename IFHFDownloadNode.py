@@ -2,6 +2,7 @@
 import os
 import math
 import re
+import logging
 from huggingface_hub import hf_hub_download, snapshot_download, HfApi
 from server import PromptServer
 from aiohttp import web
@@ -9,6 +10,8 @@ import asyncio
 from comfy.utils import ProgressBar
 from dotenv import load_dotenv
 from tqdm import tqdm
+from folder_paths import folder_names_and_paths
+
 
 class ComfyProgress:
     def __init__(self, total):
@@ -95,14 +98,10 @@ class IFHFDownload:
         return {
             "required": {
                 "repo_id": ("STRING", {"multiline": False}),
-                "file_paths": ("STRING", {"multiline": True, "default": "comma-separated list of files or leave empty for all"}),
+                "resource_type": (["model", "space", "collection"], {"default": "model"}),
+                "file_paths": ("STRING", {"multiline": True, "default": "comma-separated list or leave empty"}),
                 "folder_path": ("STRING", {"multiline": False, "default": "/path/to/download/folder"}),
-                "comfy_paths": (["none", "animatediff_models", "animatediff_motion_lora", "animatediff_video_formats", 
-                                 "blip", "checkpoints", "classifiers", "clip", "clip_vision", "CogVideo", "configs", "controlnet", "control-lora",
-                                 "deforum", "diffusers", "diffusion_models", "embeddings", "emotion2vec", "facedetection", 
-                                 "FILM", "gligen", "hypernetworks", "insightface", 
-                                 "Joy_caption", "layerstyle", "liveportrait",  "LLM", "loras", "onnx", "photomaker", "style_models",
-                                 "unet", "upscale_models", "vae", "vae_approx", "wav2vec", "xlabs"], {"default": "none"}),
+                "comfy_paths": (["none"] + list(folder_names_and_paths.keys()), {"default": "none"}),
                 "exclude_files": ("STRING", {"multiline": True, "default": "comma-separated list to exclude"}),
             },
             "optional": {
@@ -130,7 +129,43 @@ class IFHFDownload:
         safe_name = re.sub(r'[^\w\-_\. ]', '_', folder_name)
         return safe_name
     
-    def download_hf(self, mode, repo_id, file_paths, comfy_paths, folder_path, exclude_files, provided_token = None):
+    def get_logger(self):
+        logger = logging.getLogger(self.__class__.__name__)
+        if not logger.handlers:
+            logger.setLevel(logging.INFO)
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        return logger
+
+    def download_collection(self, collection_slug, repo_download_folder, hf_token):
+        """Download all models in a Hugging Face collection"""
+        from .collection_downloader import CollectionDownloader
+        
+        logger = self.get_logger()
+        downloader = CollectionDownloader(logger)
+        collection_slug = downloader.extract_slug_from_url(collection_slug)
+        model_ids = downloader.get_model_ids_from_collection(collection_slug, bool(hf_token))
+        
+        if not model_ids:
+            return "No models found in collection"
+            
+        with ComfyProgress(len(model_ids)) as pbar:
+            for model_id in model_ids:
+                model_folder = os.path.join(repo_download_folder, self.get_safe_folder_name(model_id))
+                os.makedirs(model_folder, exist_ok=True)
+                logger.info(f"Downloading model {model_id} to {model_folder}")
+                snapshot_download(
+                    repo_id=model_id,
+                    local_dir=model_folder,
+                    token=hf_token,
+                    tqdm_class=SnapshotProgress
+                )
+                pbar.update(1)
+        return f"Downloaded {len(model_ids)} models from collection"
+
+    def download_hf(self, repo_id, resource_type, file_paths, comfy_paths, folder_path, exclude_files, mode, provided_token = None):
         try:
             hf_token = self.get_hf_token(provided_token)
         except ValueError as e:
@@ -153,15 +188,17 @@ class IFHFDownload:
         repo_download_folder = os.path.join(download_folder, repo_folder_name)
         os.makedirs(repo_download_folder, exist_ok=True)
 
-        if '/' in repo_id:
+        if resource_type == "collection":
+            self.output = self.download_collection(repo_id, repo_download_folder, hf_token)
+        elif resource_type == "space" or ('/' in repo_id and len(repo_id.split('/')) > 2):
             parts = repo_id.split('/')
             if len(parts) > 2:
                 space_id = '/'.join(parts[:2])
                 subpath = '/'.join(parts[2:])
                 self.download_from_space(space_id, subpath, file_paths, repo_download_folder, exclude_list, hf_token, mode)
-            else:
+            else: # Fallback for space-like IDs that aren't really spaces
                 self.download_repo_or_files(repo_id, file_paths, repo_download_folder, exclude_list, hf_token, mode)
-        else:
+        else: # This handles models
             self.download_repo_or_files(repo_id, file_paths, repo_download_folder, exclude_list, hf_token, mode)
 
         return (self.output,)
